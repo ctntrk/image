@@ -1,3 +1,4 @@
+
 from PIL import Image
 import torch
 from transformers import BlipProcessor, BlipForConditionalGeneration
@@ -37,4 +38,4 @@ def generate_caption(
     )
     
     caption = processor.decode(out[0], skip_special_tokens=True)
-    return caption
+    return caption 
