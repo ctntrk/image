@@ -3,28 +3,11 @@ from models.model_utils import generate_caption
 import os
 from PIL import Image
 import io
-import torch
-from transformers import BlipProcessor, BlipForConditionalGeneration
-import tempfile
 
-# Model yükleme fonksiyonu
-@st.singleton
-def load_model(model_type="base"):
-    if model_type == "large":
-        processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-large")
-        model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-large")
-    else:
-        processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-base")
-        model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-base")
-    
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    model.to(device)
-    return processor, model
-
-# Kullanıcıların Dikkatine Bölümü
+# Hakkında Bölümü
 with st.expander("📌 Hakkında"):
     st.markdown("""
-    **Bu AI araç** açık kaynaklı image-to-text modelini temel alan Salesforce/blip-image-captioning-base ve Salesforce/blip-image-captioning-large modelleri kullanılarak oluşturulmuştur. Bu sistem girdi olarak resim alan sonrasında image-to-text modeli kullanarak resmin tarifini metin olarak çıktı üretmektedir. Bir resim yükleyin, gerekli parametreleri seçin ve  resmin tarif edmesini bekleyin.
+    **Bu AI araç** açık kaynaklı image-to-text modelini temel alan Salesforce/blip-image-captioning-base ve Salesforce/blip-image-captioning-large modelleri kullanılarak oluşturulmuştur. Bu sistem girdi olarak resim alan sonrasında image-to-text modeli kullanarak resmin tarifini metin olarak çıktı üretmektedir. Bir resim yükleyin, gerekli parametreleri seçin ve  resmin tarif etmesini bekleyin.
     """)
 
 # Kullanıcıların Dikkatine Bölümü
@@ -58,15 +41,17 @@ if uploaded_file:
         # Görüntüyü işleme
         image = Image.open(io.BytesIO(uploaded_file.getvalue()))
         
-        # Geçici dosya oluşturma
-        with tempfile.NamedTemporaryFile(delete=False) as temp_file:
-            temp_path = temp_file.name
-            temp_file.write(uploaded_file.getbuffer())
+        # Geçici dosya oluşturma (gerekiyorsa)
+        temp_path = None
+        if not hasattr(generate_caption, 'supports_bytes'):
+            temp_path = f"temp_{uploaded_file.name}"
+            with open(temp_path, "wb") as f:
+                f.write(uploaded_file.getbuffer())
         
         # Alt başlık oluşturma
         with st.spinner("Resim analiz ediliyor, lütfen bekleyin..."):
             caption = generate_caption(
-                temp_path,
+                temp_path if temp_path else image,
                 model_type=model_type,
                 max_length=max_length,
                 num_beams=num_beams,
@@ -84,4 +69,4 @@ if uploaded_file:
     finally:
         # Geçici dosyayı temizleme
         if temp_path and os.path.exists(temp_path):
-            os.remove(temp_path)
+            os.remove(temp_path) 
